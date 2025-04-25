@@ -1,8 +1,3 @@
-"""
-Metadata template retrieval module for Box Metadata AI.
-This module provides functionality for retrieving metadata templates from Box.
-"""
-
 import streamlit as st
 import logging
 import requests
@@ -13,27 +8,6 @@ from typing import Dict, Any, List, Optional
 logging.basicConfig(level=logging.INFO, 
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-def metadata_template_retrieval():
-    """
-    Main function for metadata template retrieval
-    This function is called from the main app to refresh metadata templates
-    """
-    if not st.session_state.authenticated or not st.session_state.client:
-        st.error("Please authenticate with Box first")
-        return
-    
-    # Get client
-    client = st.session_state.client
-    
-    # Refresh templates
-    templates = get_metadata_templates(client, force_refresh=True)
-    
-    # Initialize template state
-    initialize_template_state()
-    
-    # Return templates
-    return templates
 
 def get_metadata_templates(client, force_refresh=False):
     """

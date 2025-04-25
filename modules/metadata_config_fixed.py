@@ -1,3 +1,8 @@
+"""
+Fixed metadata configuration module that addresses the issue with template selection
+and ensures proper display of template fields.
+"""
+
 import streamlit as st
 import logging
 import json
@@ -37,6 +42,8 @@ def metadata_config():
         
         # Create a table of document types
         categorization_data = []
+        document_types = set()
+        
         for file in st.session_state.selected_files:
             file_id = file["id"]
             file_name = file["name"]
@@ -45,6 +52,7 @@ def metadata_config():
             document_type = "Not categorized"
             if file_id in st.session_state.document_categorization["results"]:
                 document_type = st.session_state.document_categorization["results"][file_id]["document_type"]
+                document_types.add(document_type)
             
             categorization_data.append({
                 "File Name": file_name,
@@ -151,21 +159,13 @@ def metadata_config():
             st.subheader("Document Type Template Mapping")
             st.info("You can map each document type to a specific metadata template.")
             
-            # Get unique document types
-            document_types = set()
-            for file_id, result in st.session_state.document_categorization["results"].items():
-                document_types.add(result["document_type"])
-            
             # Initialize document type to template mapping if not exists
             if not hasattr(st.session_state, "document_type_to_template"):
                 from modules.metadata_template_retrieval import initialize_template_state
                 initialize_template_state()
             
-            # FIX: Create a list of document types to ensure consistent order
-            document_types_list = sorted(list(document_types))
-            
             # Display template selection for each document type
-            for doc_type in document_types_list:
+            for doc_type in document_types:
                 # Get current template for document type
                 current_template_id = st.session_state.document_type_to_template.get(doc_type, "")
                 
@@ -177,6 +177,7 @@ def metadata_config():
                         break
                 
                 # Display template selection
+                st.write(f"Template for {doc_type}")
                 selected_template = st.selectbox(
                     f"Template for {doc_type}",
                     options=[option[1] for option in template_options],
@@ -195,21 +196,23 @@ def metadata_config():
                 # Update template in session state
                 st.session_state.document_type_to_template[doc_type] = selected_template_id
                 
-                # FIX: Display template details immediately after selection
-                if selected_template_id and selected_template_id in templates:
+                # Display template details if selected
+                if selected_template_id:
                     template = templates[selected_template_id]
                     
-                    with st.expander(f"{doc_type} Template Details", expanded=False):
-                        st.write(f"**Name:** {template['displayName']}")
-                        st.write(f"**ID:** {template['id']}")
-                        
-                        # Display fields
-                        st.write("**Fields:**")
-                        for field in template["fields"]:
-                            st.write(f"- {field['displayName']} ({field['type']})")
+                    st.write("##### Template Details")
+                    st.write(f"**Name:** {template['displayName']}")
+                    st.write(f"**ID:** {template['id']}")
+                    
+                    # Display fields
+                    st.write("**Fields:**")
+                    for field in template["fields"]:
+                        st.write(f"- {field['displayName']} ({field['type']})")
+                
+                st.write("---")
         
-        # FIX: Only show general template selection if no document categorization
-        if not has_categorization:
+        # Custom fields if no template selected for any document type
+        else:
             # General template selection (for all files)
             selected_template_name = st.selectbox(
                 "Select a metadata template",
@@ -222,7 +225,7 @@ def metadata_config():
             # Find template ID from selected name
             selected_template_id = ""
             for template_id, template_name in template_options:
-                if template_name == selected_template_name:
+                if template_name == selected_template:
                     selected_template_id = template_id
                     break
             
@@ -231,7 +234,7 @@ def metadata_config():
             st.session_state.metadata_config["use_template"] = (selected_template_id != "")
             
             # Display template details if selected
-            if selected_template_id and selected_template_id in templates:
+            if selected_template_id:
                 template = templates[selected_template_id]
                 
                 st.write("#### Template Details")
@@ -242,57 +245,53 @@ def metadata_config():
                 st.write("**Fields:**")
                 for field in template["fields"]:
                     st.write(f"- {field['displayName']} ({field['type']})")
-        else:
-            # FIX: When document categorization is available, use the document type to template mapping
-            # Update template ID in session state based on document types
-            st.session_state.metadata_config["use_template"] = True
-        
-        # Custom fields if no template selected
-        if not has_categorization or not any(st.session_state.document_type_to_template.values()):
-            st.write("#### Custom Fields")
-            st.write("Define custom fields for structured extraction")
             
-            # Initialize custom fields if not exists
-            if "custom_fields" not in st.session_state.metadata_config:
-                st.session_state.metadata_config["custom_fields"] = []
-            
-            # Display existing custom fields
-            for i, field in enumerate(st.session_state.metadata_config["custom_fields"]):
-                col1, col2, col3 = st.columns([3, 2, 1])
+            # Custom fields if no template selected
+            else:
+                st.write("#### Custom Fields")
+                st.write("Define custom fields for structured extraction")
                 
-                with col1:
-                    field_name = st.text_input(
-                        "Field Name",
-                        value=field["name"],
-                        key=f"field_name_{i}",
-                        help="Name of the custom field"
-                    )
+                # Initialize custom fields if not exists
+                if "custom_fields" not in st.session_state.metadata_config:
+                    st.session_state.metadata_config["custom_fields"] = []
                 
-                with col2:
-                    field_type = st.selectbox(
-                        "Field Type",
-                        options=["string", "number", "date", "enum"],
-                        index=["string", "number", "date", "enum"].index(field["type"]),
-                        key=f"field_type_{i}",
-                        help="Type of the custom field"
-                    )
+                # Display existing custom fields
+                for i, field in enumerate(st.session_state.metadata_config["custom_fields"]):
+                    col1, col2, col3 = st.columns([3, 2, 1])
+                    
+                    with col1:
+                        field_name = st.text_input(
+                            "Field Name",
+                            value=field["name"],
+                            key=f"field_name_{i}",
+                            help="Name of the custom field"
+                        )
+                    
+                    with col2:
+                        field_type = st.selectbox(
+                            "Field Type",
+                            options=["string", "number", "date", "enum"],
+                            index=["string", "number", "date", "enum"].index(field["type"]),
+                            key=f"field_type_{i}",
+                            help="Type of the custom field"
+                        )
+                    
+                    with col3:
+                        if st.button("Remove", key=f"remove_field_{i}"):
+                            st.session_state.metadata_config["custom_fields"].pop(i)
+                            st.rerun()
+                    
+                    # Update field in session state
+                    st.session_state.metadata_config["custom_fields"][i]["name"] = field_name
+                    st.session_state.metadata_config["custom_fields"][i]["type"] = field_type
                 
-                with col3:
-                    if st.button("Remove", key=f"remove_field_{i}"):
-                        st.session_state.metadata_config["custom_fields"].pop(i)
-                        st.rerun()
-                
-                # Update field in session state
-                st.session_state.metadata_config["custom_fields"][i]["name"] = field_name
-                st.session_state.metadata_config["custom_fields"][i]["type"] = field_type
-            
-            # Add new field button
-            if st.button("Add Field", key="add_field_button"):
-                st.session_state.metadata_config["custom_fields"].append({
-                    "name": f"Field {len(st.session_state.metadata_config['custom_fields']) + 1}",
-                    "type": "string"
-                })
-                st.rerun()
+                # Add new field button
+                if st.button("Add Field", key="add_field_button"):
+                    st.session_state.metadata_config["custom_fields"].append({
+                        "name": f"Field {len(st.session_state.metadata_config['custom_fields']) + 1}",
+                        "type": "string"
+                    })
+                    st.rerun()
     
     # AI model selection
     st.subheader("AI Model Selection")
