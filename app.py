@@ -4,6 +4,15 @@ This version integrates all fixes for document categorization, metadata configur
 """
 
 import streamlit as st
+
+# Set page config at the top level, before any other Streamlit commands
+st.set_page_config(
+    page_title="Box Metadata AI",
+    page_icon="📄",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 import logging
 import os
 import json
@@ -29,14 +38,6 @@ def main():
     """
     Main function for the Box Metadata AI application
     """
-    # Set page config
-    st.set_page_config(
-        page_title="Box Metadata AI",
-        page_icon="📄",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
-    
     # Initialize session state
     initialize_session_state()
     
