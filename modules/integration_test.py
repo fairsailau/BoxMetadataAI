@@ -133,66 +133,109 @@ def test_app_integration():
         
         logger.info("app.py file can be parsed")
         
-        # Create a modified version of app.py with the new modules
-        modified_content = app_content
-        
-        # Add import for document_types_manager
+        # Check that the app.py file includes the new modules
         if "from modules.document_types_manager import" not in app_content:
-            import_line = "from modules.document_categorization import document_categorization"
-            new_import = "from modules.document_categorization import document_categorization\nfrom modules.document_types_manager import document_types_manager"
-            modified_content = modified_content.replace(import_line, new_import)
+            logger.error("app.py does not import document_types_manager")
+            return False
         
-        # Add import for api_client_enhanced
-        if "from modules.api_client_enhanced import" not in modified_content:
-            # Add after the other imports
-            import_section_end = "from modules.user_journey_guide import user_journey_guide, display_step_help"
-            new_import = import_section_end + "\nfrom modules.api_client_enhanced import BoxAPIClientEnhanced"
-            modified_content = modified_content.replace(import_section_end, new_import)
+        if "from modules.api_client_enhanced import" not in app_content:
+            logger.error("app.py does not import api_client_enhanced")
+            return False
         
-        # Add document_types_manager to the navigation
-        if "Document Types" not in modified_content:
-            # Find the navigation section
-            nav_section = "if st.button(\"File Browser\", use_container_width=True, key=\"nav_file_browser\"):"
-            # Add document types manager button after file browser
-            new_nav = nav_section + """
-            navigate_to("File Browser")
+        # Check that the app.py file initializes the enhanced client
+        if "enhanced_client" not in app_content:
+            logger.error("app.py does not initialize enhanced_client")
+            return False
         
-        if st.button("Document Types", use_container_width=True, key="nav_doc_types"):
-            navigate_to("Document Types")"""
-            modified_content = modified_content.replace(nav_section, new_nav)
+        # Check that the app.py file includes the Document Types page
+        if "Document Types" not in app_content:
+            logger.error("app.py does not include Document Types page")
+            return False
         
-        # Add document_types_manager to the page display section
-        if "elif st.session_state.current_page == \"Document Types\":" not in modified_content:
-            # Find the document categorization section
-            doc_cat_section = "elif st.session_state.current_page == \"Document Categorization\":"
-            # Add document types manager section before document categorization
-            new_section = """elif st.session_state.current_page == "Document Types":
-        document_types_manager()
-    
-    """ + doc_cat_section
-            modified_content = modified_content.replace(doc_cat_section, new_section)
-        
-        # Write the modified app.py to a test file
-        test_app_path = os.path.join(Path(__file__).parent.parent, "app_test.py")
-        with open(test_app_path, "w") as f:
-            f.write(modified_content)
-        
-        # Try to parse the modified file
-        with open(test_app_path, "r") as f:
-            modified_content = f.read()
-        
-        ast.parse(modified_content)
-        
-        logger.info("Modified app.py file can be parsed")
-        
-        # Clean up test file
-        os.remove(test_app_path)
+        logger.info("app.py includes all required modules and functionality")
         
         logger.info("App integration test passed")
         return True
     
     except Exception as e:
         logger.error(f"Error testing app integration: {str(e)}")
+        return False
+
+def test_document_categorization_integration():
+    """
+    Test that the document categorization module integrates properly with the enhanced API client and document types manager.
+    """
+    logger.info("Testing document categorization integration")
+    
+    # Read the document_categorization.py file
+    try:
+        with open(os.path.join(Path(__file__).parent, "document_categorization.py"), "r") as f:
+            doc_cat_content = f.read()
+        
+        # Check that the document_categorization.py file can be parsed
+        import ast
+        ast.parse(doc_cat_content)
+        
+        logger.info("document_categorization.py file can be parsed")
+        
+        # Check that the document_categorization.py file uses the document types manager
+        if "from modules.document_types_manager import" not in doc_cat_content:
+            logger.error("document_categorization.py does not import from document_types_manager")
+            return False
+        
+        # Check that the document_categorization.py file uses the enhanced API client
+        if "enhanced_client" not in doc_cat_content:
+            logger.error("document_categorization.py does not use enhanced_client")
+            return False
+        
+        # Check that the document_categorization.py file includes batch processing
+        if "batch_categorize_documents" not in doc_cat_content:
+            logger.error("document_categorization.py does not include batch_categorize_documents")
+            return False
+        
+        logger.info("document_categorization.py includes all required functionality")
+        
+        logger.info("Document categorization integration test passed")
+        return True
+    
+    except Exception as e:
+        logger.error(f"Error testing document categorization integration: {str(e)}")
+        return False
+
+def test_metadata_extraction_integration():
+    """
+    Test that the metadata extraction module integrates properly with the enhanced API client.
+    """
+    logger.info("Testing metadata extraction integration")
+    
+    # Read the metadata_extraction.py file
+    try:
+        with open(os.path.join(Path(__file__).parent, "metadata_extraction.py"), "r") as f:
+            metadata_extraction_content = f.read()
+        
+        # Check that the metadata_extraction.py file can be parsed
+        import ast
+        ast.parse(metadata_extraction_content)
+        
+        logger.info("metadata_extraction.py file can be parsed")
+        
+        # Check that the metadata_extraction.py file uses the enhanced API client
+        if "enhanced_client" not in metadata_extraction_content:
+            logger.error("metadata_extraction.py does not use enhanced_client")
+            return False
+        
+        # Check that the metadata_extraction.py file includes batch processing
+        if "batch_extract_metadata" not in metadata_extraction_content:
+            logger.error("metadata_extraction.py does not include batch_extract_metadata")
+            return False
+        
+        logger.info("metadata_extraction.py includes all required functionality")
+        
+        logger.info("Metadata extraction integration test passed")
+        return True
+    
+    except Exception as e:
+        logger.error(f"Error testing metadata extraction integration: {str(e)}")
         return False
 
 def run_all_tests():
@@ -202,7 +245,9 @@ def run_all_tests():
     results = {
         "api_client_enhanced_compatibility": test_api_client_enhanced_compatibility(),
         "document_types_manager_integration": test_document_types_manager_integration(),
-        "app_integration": test_app_integration()
+        "app_integration": test_app_integration(),
+        "document_categorization_integration": test_document_categorization_integration(),
+        "metadata_extraction_integration": test_metadata_extraction_integration()
     }
     
     all_passed = all(results.values())
